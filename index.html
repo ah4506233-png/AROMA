@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Aromatherapy & Herbal Medicine</title>
+    <style>
+        :root {
+            --primary-color: #00695c; /* Teal */
+            --secondary-color: #0277bd; /* Ocean Blue */
+            --accent-color: #fbc02d; /* Warning Yellow */
+            --text-color: #333;
+            --bg-color: #eceff1;
+            --correct-bg: #c8e6c9;
+            --correct-text: #2e7d32;
+            --wrong-bg: #ffcdd2;
+            --wrong-text: #c62828;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Watermark Styling */
+        .watermark-img {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px; /* Adjust size */
+            opacity: 0.08; /* Very faint */
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pdf-btn {
+            background-color: var(--accent-color);
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .pdf-btn:hover { background-color: #f9a825; }
+
+        .progress-wrapper { 
+            width: 30%; 
+            background: rgba(255,255,255,0.3); 
+            height: 8px; 
+            border-radius: 4px; 
+            overflow: hidden; 
+        }
+        .progress-bar { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.4s ease; }
+
+        /* Main Container */
+        #slide-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1; /* Above watermark */
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 30px 20px 100px 20px; /* Large bottom padding for footer */
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            overflow-y: auto; 
+            background-color: transparent; /* See watermark */
+            display: none;
+        }
+
+        .slide.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Content Styling */
+        .content-box {
+            max-width: 900px;
+            margin: 0 auto 30px auto;
+            background: rgba(255, 255, 255, 0.95); /* Slight transparency */
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h2 { color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; margin-top: 0; }
+        h3 { color: var(--secondary-color); margin-top: 25px; }
+        .highlight { background-color: #fff9c4; padding: 2px 5px; border-radius: 4px; font-weight: bold; }
+        .active-compound { color: #d84315; font-weight: bold; }
+        
+        .marketed-product {
+            border-left: 5px solid var(--secondary-color);
+            background-color: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .case-study {
+            border: 2px solid var(--primary-color);
+            background-color: #f1f8e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* Quiz Styling */
+        .quiz-question {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button.option-btn {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            text-align: left;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        button.option-btn:hover { background: #e0e0e0; }
+        button.option-btn:disabled { cursor: default; }
+
+        button.correct { background: var(--correct-bg) !important; color: var(--correct-text); border-color: var(--correct-text); }
+        button.incorrect { background: var(--wrong-bg) !important; color: var(--wrong-text); border-color: var(--wrong-text); }
+
+        .explanation {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            font-size: 0.95rem;
+        }
+
+        /* Navigation Footer */
+        footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: white;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover { background-color: #004d40; }
+        
+        .center-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 20px 0;
+        }
+
+        /* PRINT STYLES FOR PDF DOWNLOAD */
+        @media print {
+            body { 
+                background: white; 
+                height: auto; 
+                overflow: visible; 
+                display: block;
+            }
+            
+            /* Hide UI elements */
+            header, footer, .quiz-slide, .start-screen, .final-screen { 
+                display: none !important; 
+            }
+
+            #slide-container {
+                position: static;
+                height: auto;
+                overflow: visible;
+            }
+
+            .slide {
+                position: relative;
+                opacity: 1 !important;
+                transform: none !important;
+                display: block !important; /* Show all content slides */
+                height: auto;
+                overflow: visible;
+                padding: 0;
+                margin: 0;
+                page-break-after: always; /* Force new page for each disease */
+            }
+
+            .content-box {
+                box-shadow: none;
+                margin: 0;
+                padding: 20px 0;
+                max-width: 100%;
+            }
+
+            .watermark-img {
+                opacity: 0.05; /* Faint on paper */
+                width: 400px;
+                position: fixed;
+            }
+
+            /* Ensure background colors print */
+            * { -webkit-print-color-adjust: exact !important;   print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Watermark Image: Place 'watermark.png' in the same folder -->
+<img src="watermark.png" alt="AHMED HENDY - RS GROUP" class="watermark-img" onerror="this.style.display='none'">
+
+<header>
+    <div class="header-buttons">
+        <h1>Clinical Aromatherapy</h1>
+        <button class="pdf-btn" onclick="window.print()">Download PDF Notes</button>
+    </div>
+    <div class="progress-wrapper">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+</header>
+
+<div id="slide-container">
+
+    <!-- SLIDE 0: START -->
+    <div class="slide active start-screen">
+        <div class="center-screen">
+            <h1 style="color: var(--primary-color); font-size: 3rem;">Clinical Herbal Products</h1>
+            <p style="font-size: 1.2rem; max-width: 600px;">Course by Ahmed Hendy - RS Group</p>
+            <p><i>Read the content slides, then answer the questions to build your score.</i></p>
+        </div>
+    </div>
+
+    <!-- ==================== ALOPECIA ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Alopecia (Hair Loss)</h2>
+            <p>Ranges from mild shedding to complete baldness. <br><b>Symptoms:</b> Gradual thinning or Patchy hair loss (coin-sized spots).</p>
+            
+            <h3>Causes & Types</h3>
+            <ol>
+                <li><b>Genetics:</b> Family history (Androgenetic).</li>
+                <li><b>Autoimmune:</b> Alopecia areata (immune system attacks follicles).</li>
+                <li><b>Physical Stress:</b> Surgery, illness, shock (Telogen effluvium).</li>
+            </ol>
+
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Saw Palmetto (<i>Serenoa repens</i>)</h4>
+                <p><b>Mechanism:</b> Combats androgenetic alopecia by blocking <span class="highlight">5-α reductase</span>, reducing scalp DHT levels.</p>
+                <p><b>Active Compounds:</b> Fatty acids, Phytosterols (<span class="active-compound">β-sitosterol</span>).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Ginseng (<i>Panax ginseng</i>)</h4>
+                <p><b>Mechanism:</b> Increases blood flow to the head.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Rosemary (<i>Rosmarinus officinalis</i>)</h4>
+                <p><b>Mechanism:</b> <span class="active-compound">12-methoxycarnosic acid</span> inhibits 5-alpha reductase; 1,8-cineole improves circulation.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>TOLA® lotion:</b> Ginseng, Garlic, Rosemary, Jojoba.</li>
+                <li><b>ALOEKITA DS® shampoo:</b> Caffeine, Saw palmetto, Aloe, Tea tree.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ALOPECIA QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Alopecia</h2>
+            
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which Rosemary compound specifically inhibits 5-alpha reductase?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, '1,8-cineole improves circulation.')">1,8-cineole</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! It has anti-androgenic effects.')">12-methoxycarnosic acid</button>
+                    <button class="option-btn" onclick="check(this, false, 'Beta-sitosterol is in Saw Palmetto.')">Beta-sitosterol</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. True or False: Telogen effluvium is permanent hair loss caused by immunity.</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">True</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! It is temporary shedding due to stress.')">False</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== DIABETES ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Diabetes Mellitus</h2>
+            <p><b>Type 1:</b> Autoimmune destruction of β-cells.<br>
+            <b>Type 2:</b> Insulin resistance + β-cell dysfunction.</p>
+
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Fenugreek</h4>
+                <p><b>Mechanism:</b> Slows digestion/absorption of carbs.<br>
+                <span class="highlight" style="color:red;">Safety: Avoid high doses in pregnancy.</span></p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Gymnema sylvestre</h4>
+                <p><b>Mechanism:</b> Suppresses sweet taste, stimulates <span class="highlight">β-cell regeneration</span>.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Bitter Melon</h4>
+                <p><b>Mechanism:</b> Contains <span class="active-compound">insulin-mimetic peptides</span>.<br>
+                <span class="highlight" style="color:red;">Safety: Hypoglycemia risk, AVOID in pregnancy.</span></p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>SLYVESTER®:</b> Gymnema, Chromium picolinate, Garcinia cambogia.</li>
+                <li><b>TOMEX PLUS®:</b> Garlic.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- DIABETES QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Diabetes</h2>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which herb stimulates β-cell regeneration in animal studies?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, 'Garlic improves sensitivity.')">Garlic</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Gymnema helps regenerate pancreatic cells.')">Gymnema sylvestre</button>
+                    <button class="option-btn" onclick="check(this, false, 'Fenugreek affects carb absorption.')">Fenugreek</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. What is the composition of SLYVESTER®?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Gymnema, Chromium, Garcinia</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Garlic and Vitamin C</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HYPERPIGMENTATION ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Hyperpigmentation</h2>
+            <p><b>Types:</b> Melasma (Hormonal), PIH (Inflammatory), Freckles (Genetic).</p>
+
+            <h3>Herbal Treatments (Tyrosinase Inhibitors)</h3>
+            <div class="marketed-product">
+                <h4>1. Arbutin</h4>
+                <p>Source: Bearberry (uva-ursi), pear.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Kojic Acid</h4>
+                <p>Source: Fungi (<i>Aspergillus flavus</i>).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Liquorice Extract</h4>
+                <p><b>Glabridin:</b> Inhibits tyrosinase.<br>
+                <b>Glycyrrhizin:</b> Anti-inflammatory and soothing.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>MELANOFREE® soap:</b> Alpha-arbutin, Kojic acid, Vit C.</li>
+                <li><b>LIT UP® soap:</b> Licorice extract, Salicylic acid, Zinc oxide.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- HYPERPIGMENTATION QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Dermatology</h2>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which compound in Liquorice provides the anti-inflammatory effect?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, 'Glabridin is for pigment.')">Glabridin</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Glycyrrhizin is soothing.')">Glycyrrhizin</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. Kojic Acid is derived from:</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Specifically Aspergillus.')">Fungi</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Aloe Vera</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Bearberry</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HEPATITIS ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Chronic Hepatitis</h2>
+            <p>Inflammation > 6 months. Causes: Viral, Autoimmune, Metabolic (NASH).</p>
+
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Milk Thistle (Silymarin)</h4>
+                <p>Strong antioxidant, membrane stabilizer, <span class="highlight">promotes hepatocyte regeneration</span>.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Turmeric (Curcumin)</h4>
+                <p>Inhibits <span class="active-compound">NF-κB</span> and inflammatory cytokines.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Artichoke Extract</h4>
+                <p>Enhances <span class="highlight">bile secretion</span> and improves fatty liver.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>LEVANOX N®:</b> Dandelion, Silymarin, Turmeric.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- HEPATITIS QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Hepatitis</h2>
+
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which herb is primarily responsible for hepatocyte regeneration?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Silymarin regenerates liver cells.')">Milk Thistle (Silymarin)</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Artichoke</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. True or False: Artichoke extract reduces bile secretion.</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">True</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! It INCREASES bile secretion.')">False</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ARTHRITIS ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Arthritis</h2>
+            <p><b>Rheumatoid:</b> Autoimmune. <b>Osteoarthritis:</b> Cartilage breakdown.</p>
+
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Boswellia serrata</h4>
+                <p>Active: Boswellic acids. <br>Mech: Inhibits <span class="highlight">5-lipoxygenase (5-LOX)</span>.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Avocado-Soybean Unsaponifiables (ASU)</h4>
+                <p>Mech: Stimulates <span class="highlight">collagen synthesis</span>, inhibits cartilage degradation.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Ginger</h4>
+                <p>Mech: Inhibits COX and LOX enzymes.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>Limitless joint avoplus®:</b> ASU, Turmeric, Boswellia, Glucosamine.</li>
+                <li><b>Dorofen®:</b> Ginkgo biloba + Glucosamine.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ARTHRITIS QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Arthritis</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which herb specifically inhibits the 5-LOX enzyme?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, false, 'Ginger inhibits COX and LOX.')">Ginger</button>
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Boswellia is a 5-LOX inhibitor.')">Boswellia serrata</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. What is the active composition of Dorofen®?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Ginkgo biloba + Glucosamine</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Turmeric + Piperine</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CHOLESTEROL ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Hypercholesterolemia</h2>
+            
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Red Yeast Rice</h4>
+                <p><b>Mechanism:</b> Inhibits <span class="highlight">HMG-CoA reductase</span> (Statin-like activity).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Plant Sterols</h4>
+                <p><b>Mechanism:</b> <span class="highlight">Competes for absorption</span> in the intestine.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Garlic</h4>
+                <p><b>Mechanism:</b> Inhibits hepatic synthesis + Enhances LDL receptor activity.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>Limitless Omega 3®:</b> EPA + DHA (Reduces triglycerides).</li>
+                <li><b>TOMEX PLUS®:</b> Garlic.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- CHOLESTEROL QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Cholesterol</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Red Yeast Rice mimics the mechanism of which drug class?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct! It inhibits HMG-CoA reductase.')">Statins</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Fibrates</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. How do Plant Sterols work?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Compete for absorption in the intestine</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Increase liver breakdown of fat</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CONSTIPATION ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Chronic Constipation</h2>
+            
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. Stimulant Laxatives (Senna, Aloe, Cascara)</h4>
+                <p><b>Mechanism:</b> Increase motility via local irritation.<br>
+                <span class="highlight" style="color:red;">Contraindication:</span> Pregnancy (Risk of premature labor).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Bulk-Forming (Psyllium)</h4>
+                <p>Adds fiber/bulk to stool.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>SENNA-LAX®:</b> Calcium sennoside.</li>
+                <li><b>AGIOLAX®:</b> Ispaghula seed + Senna pods (Granules).</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- CONSTIPATION QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Constipation</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Why are stimulant laxatives contraindicated in pregnancy?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct! They can induce uterine contractions.')">They may induce premature labor.</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">They cause weight gain.</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CHF & BPH ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>CHF & BPH</h2>
+            
+            <h3>Congestive Heart Failure</h3>
+            <div class="marketed-product">
+                <h4>Digitalis (Foxglove)</h4>
+                <p>Inhibits <span class="highlight">Na+/K+-ATPase pump</span> &rarr; Increases intracellular Calcium (Stronger contraction).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>Hawthorn</h4>
+                <p>Positive inotrope + Vasodilation.</p>
+            </div>
+
+            <h3>Benign Prostatic Hyperplasia (BPH)</h3>
+            <div class="marketed-product">
+                <h4>Saw Palmetto</h4>
+                <p>Inhibits 5-alpha reductase. Use: Mild/Moderate BPH.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>Prostanorm</h4>
+                <p>Contains Saw Palmetto, Pygeum, and Stinging Nettle.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHF/BPH QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Heart & Prostate</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Digitalis works by inhibiting which pump?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Na+/K+-ATPase</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Proton Pump</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. Which BPH product contains Saw Palmetto, Pumpkin Seed, and Zinc?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Pepon Plus</button>
+                    <button class="option-btn" onclick="check(this, false, 'Prostanorm has Nettle.')">Prostanorm</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== DEPRESSION ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Depression</h2>
+            
+            <h3>Herbal Treatments</h3>
+            <div class="marketed-product">
+                <h4>1. St. John's Wort</h4>
+                <p><b>Mechanism:</b> Non-selective reuptake inhibitor of <span class="highlight">serotonin, norepinephrine, and dopamine</span>.</p>
+            </div>
+            <div class="marketed-product">
+                <h4>2. Lavender</h4>
+                <p><b>Mechanism:</b> Modulates <span class="highlight">GABA</span> (Sedative).</p>
+            </div>
+            <div class="marketed-product">
+                <h4>3. Ashwagandha</h4>
+                <p><b>Mechanism:</b> Reduces cortisol.</p>
+            </div>
+
+            <h3>Marketed Products</h3>
+            <ul>
+                <li><b>IQ PLUS®:</b> St. John's Wort, Ginkgo, Acetyl-L-carnitine.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- DEPRESSION QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Depression</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. Which neurotransmitter does Lavender modulate?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">GABA</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Serotonin</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CASE STUDIES ==================== -->
+    <div class="slide content-slide">
+        <div class="content-box">
+            <h2>Case Studies</h2>
+            
+            <div class="case-study">
+                <h3>Case: Colon Cancer (Diet vs Medicine)</h3>
+                <p>Patient refused surgery for vegan diet + vitamins. <br><b>Result:</b> Tumor metastasis. Unproven therapy should not replace evidence-based care.</p>
+            </div>
+
+            <div class="case-study">
+                <h3>Case: Recurrent UTI (Cranberry)</h3>
+                <p><b>Mechanism:</b> Cranberry polyphenols prevent bacterial adhesion to the urinary wall.<br><b>Result:</b> Reduced recurrence.</p>
+            </div>
+
+            <div class="case-study">
+                <h3>Case: Gastric Cancer (Ginseng)</h3>
+                <p>Used Red Ginseng for appetite and vitality support during chemotherapy.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CASE STUDIES QUIZ -->
+    <div class="slide quiz-slide">
+        <div class="content-box">
+            <h2>Quiz: Clinical Cases</h2>
+            <div class="quiz-question" data-answered="false">
+                <p><b>1. In the Colon Cancer case, what was the consequence of relying solely on diet?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct! Delaying care caused progression.')">Tumor metastasis</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Full recovery</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+            <div class="quiz-question" data-answered="false">
+                <p><b>2. How does Cranberry prevent UTIs?</b></p>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="check(this, true, 'Correct!')">Prevents bacterial adhesion</button>
+                    <button class="option-btn" onclick="check(this, false, 'Incorrect.')">Kills bacteria directly</button>
+                </div>
+                <div class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINAL SCREEN -->
+    <div class="slide final-screen">
+        <div class="center-screen">
+            <h1 style="color: var(--primary-color);">Course Completed</h1>
+            <p>Your Final Score:</p>
+            <div class="score-display" id="finalScore">0 / 0</div>
+            <p>AHMED HENDY - RS GROUP</p>
+            <button class="nav-btn" onclick="window.print()">Download Certificate / Notes</button>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    <button class="nav-btn" id="nextBtn" onclick="nextSlide()">Start Course</button>
+</footer>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const nextBtn = document.getElementById('nextBtn');
+    const totalSlides = slides.length;
+    
+    let score = 0;
+    let totalQuestions = 0;
+
+    // Initialize Question Count
+    document.addEventListener("DOMContentLoaded", () => {
+        const questions = document.querySelectorAll('.quiz-question');
+        totalQuestions = questions.length;
+    });
+
+    function updateUI() {
+        // Update Slide Visibility
+        slides.forEach((slide, index) => {
+            slide.classList.remove('active');
+            if (index === currentSlide) {
+                slide.classList.add('active');
+                slide.scrollTop = 0;
+            }
+        });
+
+        // Update Progress Bar
+        const progress = (currentSlide / (totalSlides - 1)) * 100;
+        progressBar.style.width = `${progress}%`;
+
+        // Update Button Text
+        if (currentSlide === 0) {
+            nextBtn.innerText = "Start Course";
+        } else if (currentSlide === totalSlides - 1) {
+            // Final Slide
+            nextBtn.style.display = "none";
+            document.getElementById('finalScore').innerText = `${score} / ${totalQuestions}`;
+        } else {
+            nextBtn.innerText = "Next >";
+            nextBtn.style.display = "block";
+        }
+    }
+
+    function nextSlide() {
+        if (currentSlide < totalSlides - 1) {
+            currentSlide++;
+            updateUI();
+        }
+    }
+
+    // Quiz Checking Logic
+    window.check = function(btn, isCorrect, explanationText) {
+        const parent = btn.parentElement.parentElement; // .quiz-question div
+        
+        // Prevent double scoring
+        if(parent.getAttribute('data-answered') === 'true') return;
+        parent.setAttribute('data-answered', 'true');
+
+        const feedback = parent.querySelector('.explanation');
+        const allBtns = parent.querySelectorAll('button');
+
+        // Disable all buttons
+        allBtns.forEach(b => b.disabled = true);
+
+        if (isCorrect) {
+            score++;
+            btn.classList.add('correct');
+            feedback.style.backgroundColor = 'var(--correct-bg)';
+            feedback.style.color = 'var(--correct-text)';
+            feedback.innerHTML = `<b>Correct!</b> ${explanationText}`;
+        } else {
+            btn.classList.add('incorrect');
+            feedback.style.backgroundColor = 'var(--wrong-bg)';
+            feedback.style.color = 'var(--wrong-text)';
+            feedback.innerHTML = `<b>Incorrect.</b> ${explanationText}`;
+
+            // Highlight the correct answer automatically
+            allBtns.forEach(b => {
+                if (b.getAttribute('onclick').includes('true')) {
+                    b.classList.add('correct');
+                }
+            });
+        }
+        feedback.style.display = 'block';
+    }
+
+    // Initialize
+    updateUI();
+</script>
+
+</body>
+</html>
